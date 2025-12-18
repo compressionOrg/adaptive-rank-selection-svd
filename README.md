@@ -26,7 +26,7 @@ This repository contains the implementation two differentiable low-rank compress
 
 
 ## Setup
-* `conda create --name svd python=3.9; conda activate svd`
+* `conda create --name ars python=3.9 -y; conda activate ars`
 * `pip install -r requirements.txt`
 	* install may fail of [eval harness](https://github.com/EleutherAI/lm-evaluation-harness). In that case, install from source as mentioned in their README
 

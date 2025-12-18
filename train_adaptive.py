@@ -3,6 +3,7 @@ import json
 import os
 import pickle
 import time
+from tqdm import tqdm
 
 import pdb
 import torch
@@ -15,8 +16,7 @@ from transformers import (
     AutoModel,
     AutoModelForCausalLM,
     AutoTokenizer,
-    LlamaTokenizerFast,
-    GemmaTokenizerFast
+    LlamaTokenizerFast
 )
 
 from utils import (
@@ -64,6 +64,8 @@ parser.add_argument('--debug', action='store_true', default=False, help='Debug m
 parser.add_argument("--exp_name", type=str, default='test', help="Experiment name")
 
 parser.add_argument("--cache_dir", type=str, default='train_cache/', help='Directory where distillation cache is stored')
+
+parser.add_argument("--cache_model", type=str, default='llm_weights', help='Directory where llm cache is stored')
 
 parser.add_argument('--eval_full', action='store_true', default=False, help='Run evaluation on large dataset when training is complete')
 
@@ -117,19 +119,29 @@ print(f"using device: {device}")
 
 # load model 
 if 'Llama-2' in args.model_name:
-    tokenizer = LlamaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+    tokenizer = LlamaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_model)
     tokenizer.pad_token = tokenizer.unk_token
     tokenizer.pad_token_id = tokenizer.unk_token_id
     print('Loaded llama tokenizer')
 
 elif 'Llama-3' in args.model_name:
-    tokenizer = LlamaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+    tokenizer = LlamaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_model)
     tokenizer.pad_token = tokenizer.eos_token
 elif 'gemma' in args.model_name.lower():
-    tokenizer = GemmaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+    try:
+        from transformers import GemmaTokenizerFast  # type: ignore
+        tokenizer = GemmaTokenizerFast.from_pretrained(args.model_name, cache_dir=args.cache_model)
+    except Exception as e:
+        print(f"Warning: GemmaTokenizerFast unavailable ({e}). Falling back to AutoTokenizer.")
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.model_name,
+            cache_dir=args.cache_model,
+            use_fast=True,
+            trust_remote_code=True,
+        )
     tokenizer.pad_token = tokenizer.eos_token
 else:
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_model)
 
 train_dl, test_dl, calib_loader = get_dataloaders(tokenizer,
                                     args,
@@ -144,7 +156,7 @@ else:
     train_precision = torch.float16
 
 start = time.time()
-model = AutoModelForCausalLM.from_pretrained(args.model_name, cache_dir=args.cache_dir)
+model = AutoModelForCausalLM.from_pretrained(args.model_name, cache_dir=args.cache_model)
 num_params_old = train_utils.count_parameters(model)
 print(f'Model loaded in {time.time()-start: 0.2f} seconds')
 print(f'Model dtype: {model.dtype}')

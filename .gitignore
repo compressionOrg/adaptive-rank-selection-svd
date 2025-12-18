@@ -1,0 +1,10 @@
+.vscode/*
+cache/*
+**/__pycache__
+utils/c4-*
+*.log
+*.pt
+llm_weights/*
+.locks
+*.pkl
+wandb/*

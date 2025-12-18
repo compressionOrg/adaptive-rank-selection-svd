@@ -3,10 +3,10 @@ torchvision==0.18.0
 torchaudio==2.3.0
 --find-links https://download.pytorch.org/whl/cu121
 
-transformers
-datasets
+transformers==4.46.1
+datasets==2.16.1
 tqdm
-numpy
+numpy==1.26.3
 pandas
 scikit-learn
 wandb
